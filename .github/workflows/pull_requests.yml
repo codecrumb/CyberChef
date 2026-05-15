@@ -5,8 +5,8 @@ permissions:
 
 on:
   workflow_dispatch:
-  pull_request:
-    types: [synchronize, opened, reopened]
+#  pull_request:
+#    types: [synchronize, opened, reopened]
 
 jobs:
   main:
