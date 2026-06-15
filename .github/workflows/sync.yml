@@ -5,12 +5,8 @@ permissions:
 
 on:
   schedule:
-    - cron: "0 0 * * *" # every day
+    - cron: "0 0 * * *"
   workflow_dispatch:
-
-permissions:
- contents: write
- actions: write
 
 jobs:
   sync_latest_from_upstream:
@@ -19,26 +15,31 @@ jobs:
     if: ${{ github.event.repository.fork }}
 
     steps:
-      # Step 1: run a standard checkout action
-      - name: Checkout target repo
-        uses: actions/checkout@v3
-
-      # Step 2: run the sync action
-      - name: Sync upstream changes
-        id: sync
-        uses: aormsby/Fork-Sync-With-Upstream-action@v3.4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
-          upstream_sync_repo: gchq/CyberChef
-          upstream_sync_branch: master
-          target_sync_branch: master
-          target_repo_token: ${{ secrets.GITHUB_TOKEN }} # automatically generated, no need to set
+          fetch-depth: 0
 
-          # Set test_mode true to run tests instead of the true action!!
-          test_mode: false
-
-      - name: Sync check
-        if: failure()
+      - name: Sync upstream (preserve local workflows)
         run: |
-          echo "[Error] 由于上游仓库的 workflow 文件变更，导致 GitHub 自动暂停了本次自动更新，你需要手动 Sync Fork 一次，详细教程请查看项目README.md "
-          echo "[Error] Due to a change in the workflow file of the upstream repository, GitHub has automatically suspended the scheduled automatic update. You need to manually sync your fork. Please refer to the project README.md for instructions. "
-          exit 1
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          git remote add upstream https://github.com/gchq/CyberChef.git
+          git fetch upstream
+
+          git checkout master
+
+          # Save our workflows before the merge overwrites them
+          git stash push -- .github/workflows
+
+          # Merge upstream, preferring upstream for all conflicts
+          git merge upstream/master --no-edit -X theirs
+
+          # Restore our workflows
+          git checkout stash -- .github/workflows
+          git stash drop
+
+          git add .github/workflows
+          git commit -m "Sync upstream (preserving local workflows)" || echo "No changes to commit"
+          git push
