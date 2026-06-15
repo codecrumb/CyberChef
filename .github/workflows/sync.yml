@@ -36,9 +36,11 @@ jobs:
           # Merge upstream, preferring upstream for all conflicts
           git merge upstream/master --no-edit -X theirs
 
-          # Restore our workflows
-          git checkout stash -- .github/workflows
-          git stash drop
+          # Restore our workflows only if we actually stashed something
+          if git stash show 2>/dev/null; then
+            git checkout stash -- .github/workflows
+            git stash drop
+          fi
 
           git add .github/workflows
           git commit -m "Sync upstream (preserving local workflows)" || echo "No changes to commit"
