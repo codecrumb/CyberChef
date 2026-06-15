@@ -8,6 +8,10 @@ on:
     - cron: "0 0 * * *" # every day
   workflow_dispatch:
 
+permissions:
+ contents: write
+ actions: write
+
 jobs:
   sync_latest_from_upstream:
     name: Sync latest commits from upstream repo
